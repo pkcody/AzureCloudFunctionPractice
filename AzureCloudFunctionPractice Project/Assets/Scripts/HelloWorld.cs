@@ -3,11 +3,17 @@ using System.Collections.Generic;
 using UnityEngine;
 using PlayFab;
 using PlayFab.CloudScriptModels;
+using PlayFab.ClientModels;
 
 public class HelloWorld : MonoBehaviour
 {
     public string myKey = "inputValue";
     public string myValue = "Blobbers";
+
+    // Catalog info
+    public string catalogName = "Messier";
+    private List<CatalogItem> catalog;
+    private List<Messier> messiers = new List<Messier>();
 
 
     private void Update()
@@ -16,7 +22,15 @@ public class HelloWorld : MonoBehaviour
         {
             CallCSharpExecuteFunction();
         }
+        // Catalog button
+        if (Input.GetKeyDown(KeyCode.C))
+        {
+            GetCatalog();
+        }
+
     }
+
+
     private void CallCSharpExecuteFunction()
     {
         PlayFabCloudScriptAPI.ExecuteFunction(new ExecuteFunctionRequest()
@@ -43,5 +57,60 @@ public class HelloWorld : MonoBehaviour
         {
             Debug.Log($"Opps Something went wrong: {error.GenerateErrorReport()}");
         });
+    }
+
+    public void GetCatalog()
+    {
+        GetCatalogItemsRequest getCatalogRequest = new GetCatalogItemsRequest
+        {
+            CatalogVersion = catalogName
+        };
+
+        PlayFabClientAPI.GetCatalogItems(getCatalogRequest,
+            result =>
+            {
+                catalog = result.Catalog;
+            },
+            error => Debug.Log(error.ErrorMessage)
+        );
+
+        Invoke("SplitCatalog", 3f);
+    }
+
+    public void SplitCatalog()
+    {
+        foreach (CatalogItem item in catalog)
+        {
+            Messier m = JsonUtility.FromJson<Messier>(item.CustomData);
+            m.name = item.DisplayName;
+            m.description = item.Description;
+            messiers.Add(m);
+        }
+
+        ShowCatalog();
+    }
+
+    public void ShowCatalog()
+    {
+        foreach (Messier m in messiers)
+        {
+            string logMsg = "***" + m.name + "***";
+            logMsg += "\n" + m.description;
+            logMsg += "\ndistance: " + m.dist;
+            logMsg += "\nseason: " + m.season;
+            logMsg += "\ntype: " + m.type;
+            Debug.Log(logMsg);
+
+        }
+    }
+
+
+    public class Messier
+    {
+        public string name;
+        public string description;
+        public string dist;
+        public string season;
+        public string type;
     }
 }
